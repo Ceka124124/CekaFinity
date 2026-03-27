@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>Leaderboard Overlay</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Nunito:wght@700;800&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: transparent;
+    font-family: 'Nunito', sans-serif;
+    width: 300px;
+    padding: 10px;
+    overflow: hidden;
+  }
+
+  .lb-container {
+    background: rgba(10, 14, 20, 0.88);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 16px;
+    overflow: hidden;
+    backdrop-filter: blur(12px);
+    box-shadow: 0 16px 48px rgba(0,0,0,0.5);
+  }
+
+  .lb-header {
+    padding: 12px 16px;
+    background: linear-gradient(135deg, rgba(255,214,10,0.12), rgba(255,45,85,0.08));
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .lb-title {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 14px; font-weight: 700;
+    letter-spacing: 2px; text-transform: uppercase;
+    color: #ffd60a;
+    flex: 1;
+  }
+
+  .lb-live {
+    display: flex; align-items: center; gap: 4px;
+    font-size: 10px; font-weight: 700; color: #ff2d55;
+    font-family: 'Rajdhani', sans-serif; letter-spacing: 1px;
+  }
+
+  .live-dot { width: 6px; height: 6px; border-radius: 50%; background: #ff2d55; animation: blink 1s infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+  .lb-list { padding: 8px 0; }
+
+  .lb-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 7px 14px;
+    transition: background 0.2s;
+    animation: slideIn 0.4s ease;
+  }
+
+  @keyframes slideIn { from { opacity:0; transform:translateX(-10px); } to { opacity:1; transform:none; } }
+
+  .lb-item:hover { background: rgba(255,255,255,0.03); }
+
+  .lb-rank {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 18px; font-weight: 700;
+    width: 28px; text-align: center; flex-shrink: 0;
+  }
+
+  .rank-1 { color: #ffd60a; }
+  .rank-2 { color: #b0b8c1; }
+  .rank-3 { color: #cd7f32; }
+  .rank-n { color: #3d5166; font-size: 13px; }
+
+  .lb-info { flex: 1; min-width: 0; }
+
+  .lb-name {
+    font-size: 13px; font-weight: 800;
+    color: #e8edf3;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+
+  .lb-bar-wrap { height: 2px; background: rgba(255,255,255,0.06); border-radius: 2px; margin-top: 4px; overflow: hidden; }
+  .lb-bar { height: 100%; border-radius: 2px; transition: width 0.8s cubic-bezier(0.4,0,0.2,1); }
+  .bar-1 { background: linear-gradient(90deg, #ffd60a, #ff9500); }
+  .bar-2 { background: linear-gradient(90deg, #b0b8c1, #7a8fa3); }
+  .bar-3 { background: linear-gradient(90deg, #cd7f32, #8b5e3c); }
+  .bar-n { background: linear-gradient(90deg, #00f2ea, #bf5af2); }
+
+  .lb-score {
+    text-align: right; flex-shrink: 0;
+  }
+
+  .score-val {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 15px; font-weight: 700;
+    color: #ffd60a;
+  }
+
+  .score-label { font-size: 9px; color: rgba(255,255,255,0.3); text-align: right; }
+
+  .lb-empty {
+    padding: 24px; text-align: center;
+    color: rgba(255,255,255,0.2);
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 13px; letter-spacing: 1px;
+  }
+</style>
+</head>
+<body>
+<div class="lb-container">
+  <div class="lb-header">
+    <div class="lb-title">🏆 Sıralama</div>
+    <div class="lb-live"><div class="live-dot"></div>CANLI</div>
+  </div>
+  <div class="lb-list" id="lb-list">
+    <div class="lb-empty">Hediye bekleniyor...</div>
+  </div>
+</div>
+
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const user = params.get('user');
+  if (!user) { document.body.innerHTML = '<p style="color:red">?user= eksik</p>'; throw new Error('no user'); }
+
+  const lb = {};
+  const list = document.getElementById('lb-list');
+
+  function giftEmoji(name) {
+    const n = (name || '').toLowerCase();
+    const m = { rose:'🌹',gül:'🌹',heart:'❤️',star:'⭐',crown:'👑',diamond:'💎',elmas:'💎',rocket:'🚀',fire:'🔥' };
+    for (const [k,v] of Object.entries(m)) { if (n.includes(k)) return v; }
+    return '🎁';
+  }
+
+  function fmtNum(n) { return n >= 1000 ? (n / 1000).toFixed(1) + 'K' : n; }
+
+  function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  function render() {
+    const sorted = Object.entries(lb).sort((a, b) => b[1].diamonds - a[1].diamonds).slice(0, 5);
+    if (sorted.length === 0) {
+      list.innerHTML = '<div class="lb-empty">Hediye bekleniyor...</div>';
+      return;
+    }
+    const max = sorted[0][1].diamonds || 1;
+    list.innerHTML = '';
+    sorted.forEach(([, data], i) => {
+      const r = i + 1;
+      const rankIcon = r === 1 ? '🥇' : r === 2 ? '🥈' : r === 3 ? '🥉' : r;
+      const rankClass = r === 1 ? 'rank-1' : r === 2 ? 'rank-2' : r === 3 ? 'rank-3' : 'rank-n';
+      const barClass = r === 1 ? 'bar-1' : r === 2 ? 'bar-2' : r === 3 ? 'bar-3' : 'bar-n';
+      const pct = Math.round((data.diamonds / max) * 100);
+      const el = document.createElement('div');
+      el.className = 'lb-item';
+      el.innerHTML = `
+        <div class="lb-rank ${rankClass}">${rankIcon}</div>
+        <div class="lb-info">
+          <div class="lb-name">${esc(data.name)}</div>
+          <div class="lb-bar-wrap"><div class="lb-bar ${barClass}" style="width:${pct}%"></div></div>
+        </div>
+        <div class="lb-score">
+          <div class="score-val">${fmtNum(data.diamonds)}</div>
+          <div class="score-label">💎</div>
+        </div>`;
+      list.appendChild(el);
+    });
+  }
+
+  function connect() {
+    const es = new EventSource(`/events/${user}`);
+    es.addEventListener('gift', ev => {
+      const d = JSON.parse(ev.data);
+      if (!d.repeatEnd && d.giftType !== 1) return;
+      const uid = d.user?.uniqueId;
+      if (!uid) return;
+      const diamonds = (d.diamondCount || 0) * (d.repeatCount || 1);
+      if (!lb[uid]) lb[uid] = { name: d.user?.nickname || uid, diamonds: 0 };
+      lb[uid].diamonds += diamonds;
+      render();
+    });
+    es.onerror = () => { es.close(); setTimeout(connect, 3000); };
+  }
+
+  connect();
+</script>
+</body>
+</html>
