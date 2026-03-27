@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>Gift Overlay</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@700&family=Nunito:wght@700;800&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: transparent;
+    font-family: 'Nunito', sans-serif;
+    width: 420px;
+    padding: 10px;
+    overflow: hidden;
+  }
+
+  #gifts { display: flex; flex-direction: column; gap: 8px; align-items: flex-end; }
+
+  .gift-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(10, 14, 20, 0.9);
+    border: 1px solid rgba(255, 214, 10, 0.35);
+    border-radius: 14px;
+    padding: 10px 16px;
+    min-width: 280px;
+    box-shadow: 0 0 30px rgba(255,214,10,0.12), 0 8px 24px rgba(0,0,0,0.5);
+    backdrop-filter: blur(12px);
+    animation: giftIn 0.55s cubic-bezier(0.34, 1.56, 0.64, 1);
+    opacity: 1;
+    transition: opacity 0.5s ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .gift-card::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(135deg, rgba(255,214,10,0.04), transparent);
+    pointer-events: none;
+  }
+
+  @keyframes giftIn {
+    from { opacity: 0; transform: scale(0.7) rotate(-6deg); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  .gift-card.fade { opacity: 0; transform: scale(0.9); }
+
+  .gift-emoji {
+    font-size: 36px;
+    width: 52px; height: 52px;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(255,214,10,0.1);
+    border-radius: 12px;
+    border: 1px solid rgba(255,214,10,0.2);
+    flex-shrink: 0;
+    animation: spin 0.4s ease 0.1s;
+  }
+
+  @keyframes spin {
+    from { transform: rotate(-20deg) scale(0.8); }
+    to   { transform: none; }
+  }
+
+  .gift-info { flex: 1; }
+
+  .gift-name {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 18px; font-weight: 700;
+    color: #ffd60a;
+    letter-spacing: 0.5px;
+    line-height: 1;
+  }
+
+  .gift-from {
+    font-size: 12px; color: rgba(255,255,255,0.55);
+    margin-top: 3px;
+  }
+
+  .gift-from strong { color: #00f2ea; }
+
+  .gift-count {
+    text-align: right; flex-shrink: 0;
+  }
+
+  .gift-x {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 22px; font-weight: 700; color: white;
+    line-height: 1;
+  }
+
+  .gift-dia {
+    font-size: 11px; color: #00f2ea;
+    font-family: 'Rajdhani', sans-serif; font-weight: 700;
+  }
+
+  /* Particle burst effect */
+  .particles {
+    position: absolute; top: 50%; left: 30%;
+    pointer-events: none;
+  }
+
+  .particle {
+    position: absolute;
+    width: 6px; height: 6px; border-radius: 50%;
+    animation: burst 0.8s ease forwards;
+    opacity: 0;
+  }
+
+  @keyframes burst {
+    0%   { opacity: 1; transform: translate(0,0) scale(1); }
+    100% { opacity: 0; transform: translate(var(--tx), var(--ty)) scale(0); }
+  }
+</style>
+</head>
+<body>
+<div id="gifts"></div>
+
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const user = params.get('user');
+  if (!user) { document.body.innerHTML = '<p style="color:red">?user= eksik</p>'; throw new Error('no user'); }
+
+  const MAX = 4;
+  const LIFETIME = 5000;
+  const container = document.getElementById('gifts');
+
+  const COLORS = ['#ff2d55','#ffd60a','#00f2ea','#39ff14','#bf5af2','#ff9500'];
+
+  function giftEmoji(name) {
+    const n = (name || '').toLowerCase();
+    const m = { rose:'🌹',gül:'🌹',heart:'❤️',kalp:'❤️',star:'⭐',yıldız:'⭐',crown:'👑',taç:'👑',diamond:'💎',elmas:'💎',rocket:'🚀',roket:'🚀',fire:'🔥',ateş:'🔥',bomb:'💣',rainbow:'🌈',unicorn:'🦄',lion:'🦁',dragon:'🐉',flower:'🌸',çiçek:'🌸',money:'💰',para:'💰',trophy:'🏆',bear:'🐻' };
+    for (const [k,v] of Object.entries(m)) { if (n.includes(k)) return v; }
+    return '🎁';
+  }
+
+  function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  function addParticles(el) {
+    const p = document.createElement('div');
+    p.className = 'particles';
+    el.appendChild(p);
+    for (let i = 0; i < 12; i++) {
+      const dot = document.createElement('div');
+      dot.className = 'particle';
+      const angle = (i / 12) * 360;
+      const dist = 30 + Math.random() * 40;
+      const rad = angle * Math.PI / 180;
+      dot.style.cssText = `
+        background: ${COLORS[i % COLORS.length]};
+        --tx: ${Math.cos(rad) * dist}px;
+        --ty: ${Math.sin(rad) * dist}px;
+        animation-delay: ${i * 0.03}s;
+        animation-duration: ${0.6 + Math.random() * 0.4}s;
+      `;
+      p.appendChild(dot);
+    }
+    setTimeout(() => p.remove(), 1200);
+  }
+
+  function addGift(d) {
+    if (!d.repeatEnd && d.giftType !== 1) return;
+    const diamonds = (d.diamondCount || 0) * (d.repeatCount || 1);
+    const emoji = giftEmoji(d.giftName);
+    const nick = d.user?.nickname || d.user?.uniqueId || '?';
+
+    const card = document.createElement('div');
+    card.className = 'gift-card';
+    card.innerHTML = `
+      <div class="gift-emoji">${emoji}</div>
+      <div class="gift-info">
+        <div class="gift-name">${esc(d.giftName || 'Hediye')}</div>
+        <div class="gift-from"><strong>${esc(nick)}</strong> gönderdi</div>
+      </div>
+      <div class="gift-count">
+        <div class="gift-x">×${d.repeatCount || 1}</div>
+        <div class="gift-dia">💎 ${diamonds}</div>
+      </div>`;
+
+    container.appendChild(card);
+    addParticles(card);
+
+    while (container.children.length > MAX) container.removeChild(container.firstChild);
+
+    setTimeout(() => {
+      card.classList.add('fade');
+      setTimeout(() => card.remove(), 500);
+    }, LIFETIME);
+  }
+
+  function connect() {
+    const es = new EventSource(`/events/${user}`);
+    es.addEventListener('gift', ev => addGift(JSON.parse(ev.data)));
+    es.onerror = () => { es.close(); setTimeout(connect, 3000); };
+  }
+
+  connect();
+</script>
+</body>
+</html>
