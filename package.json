@@ -1,0 +1,23 @@
+{
+  "name": "tikpanel",
+  "version": "1.0.0",
+  "description": "TikTok Live Dashboard — Tikfinity alternative",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "body-parser": "^1.20.2",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "helmet": "^7.1.0",
+    "tiktok-live-connector": "^1.2.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": ["tiktok", "live", "dashboard", "overlay"],
+  "license": "MIT"
+}
